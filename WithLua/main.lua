@@ -1,8 +1,9 @@
 local grid = {}
+local placedGrid = {}
 local gW, gH = 80, 60
 
 -- list all tiles
-local allTiles = {"blue", "sandy", "green", "forrestGreen"}
+local allTiles = {"air", "grass", "dirt"}
 
 -- creat tiles
 local tileManager = {}
@@ -12,6 +13,7 @@ end
 
 local tileSize = 10
 local showGrid = true
+local doDebug = false
 local autoSpace = false
 
 -- assign tiles
@@ -25,10 +27,9 @@ for i, v in pairs(allTiles) do
 end
 
 local spaces = {
-    tileManager.blue,
-    tileManager.sandy,
-    tileManager.green,
-    tileManager.forrestGreen,
+    tileManager.air,
+    tileManager.dirt,
+    tileManager.grass,
 }
 
 function love.load()
@@ -39,6 +40,12 @@ function love.load()
             for i, val in pairs(spaces) do
                 grid[x][y][i] = val
             end
+        end
+    end
+    for x = 1,gW do
+        placedGrid[x] = {}
+        for y = 1,gH do
+            placedGrid[x][y] = false
         end
     end
 end
@@ -54,7 +61,8 @@ function love.draw()
     for x = 1,gW do
         for y = 1,gH do
             local tilePossiblity = grid[x][y]
-            if #tilePossiblity == 1 then
+            
+            if placedGrid[x][y] and #tilePossiblity ~= 0 then
                 local tile = findVal(tilePossiblity)
                 love.graphics.setColor(tile.color)
                 love.graphics.rectangle("fill", (x-1)*tileSize, (y-1)*tileSize, tileSize, tileSize)
@@ -64,6 +72,26 @@ function love.draw()
                 love.graphics.rectangle("line", (x-1)*tileSize, (y-1)*tileSize, tileSize, tileSize)
             end
         end
+    end
+
+    local x, y = love.mouse.getPosition()
+    x, y = math.floor(x/tileSize)+1, math.floor(y/tileSize)+1
+
+    local val = orNil(x, y)
+    if val then
+        love.graphics.setColor(0.5, 0.5, 0.5)
+        love.graphics.rectangle("fill", 0, 0, 100, 40)
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.print(x.." | "..y.." = "..#val, 0, 0)
+        if placedGrid[x][y] then
+            love.graphics.print("true", 0, 20)
+        else
+            love.graphics.print("false", 0, 20)
+        end
+    end
+
+    if doDebug then
+        recalcPossibilities(x, y, 2)
     end
 end
 
@@ -80,6 +108,8 @@ function love.keypressed(key)
         love.load()
     elseif key == "g" then
         showGrid = not showGrid
+    elseif key == "d" then
+        doDebug = not doDebug
     end
 end
 
@@ -87,7 +117,7 @@ function activateLowestRandom()
     local lowest = 999
     for x = 1,gW do
         for y = 1,gH do
-            if #grid[x][y] ~= 1 and #grid[x][y] ~= 0 then
+            if placedGrid[x][y] == false and #grid[x][y] ~= 0 then
                 if #grid[x][y] < lowest then
                     lowest = #grid[x][y]
                 end
@@ -98,7 +128,7 @@ function activateLowestRandom()
     local gridToChoseFrom = {}
     for x = 1,gW do
         for y = 1,gH do
-            if #grid[x][y] == lowest then
+            if #grid[x][y] == lowest and placedGrid[x][y] == false then
                 table.insert(gridToChoseFrom, {x, y})
             end
         end
@@ -111,25 +141,30 @@ function activateLowestRandom()
 end
 
 function choseGrid(x, y, nr)
+    placedGrid[x][y] = true
     local valToSave = grid[x][y][nr]
     grid[x][y] = {}
     grid[x][y][1] = valToSave
     if orNil(x+1, y) ~= nil then
-        recalcPossibilities(x+1, y)
+        recalcPossibilities(x+1, y, 2)
     end
     if orNil(x, y+1) ~= nil then
-        recalcPossibilities(x, y+1)
+        recalcPossibilities(x, y+1, 2)
     end
     if orNil(x-1, y) ~= nil then
-        recalcPossibilities(x-1, y)
+        recalcPossibilities(x-1, y, 2)
     end
     if orNil(x, y-1) ~= nil then
-        recalcPossibilities(x, y-1)
+        recalcPossibilities(x, y-1, 2)
     end
 end
 
-function recalcPossibilities(x, y)
-    if #grid[x][y] == 1 then
+function recalcPossibilities(x, y, itterations)
+    itterations = itterations - 1
+    if itterations == 0 then
+        return
+    end
+    if placedGrid[x][y] then
         return
     end
     grid[x][y] = {}
@@ -160,9 +195,26 @@ function recalcPossibilities(x, y)
             end
         end
 
+        if doDebug then
+            print(vals[1], vals[2], vals[3], vals[4], v.name)
+        end
+
         if (vals[1] == true and vals[2] == true and vals[3] == true and vals[4] == true) then
             table.insert(grid[x][y], spaces[i])
         end
+    end
+
+    if orNil(x+1, y) ~= nil then
+        recalcPossibilities(x+1, y, itterations)
+    end
+    if orNil(x, y+1) ~= nil then
+        recalcPossibilities(x, y+1, itterations)
+    end
+    if orNil(x-1, y) ~= nil then
+        recalcPossibilities(x-1, y, itterations)
+    end
+    if orNil(x, y-1) ~= nil then
+        recalcPossibilities(x, y-1, itterations)
     end
 end
 
@@ -185,6 +237,9 @@ end
 function orNil(x, y)
     if grid[x] then
         if grid[x][y] then
+            if #grid[x][y] == 0 then
+                return nil
+            end
             return grid[x][y]
         end
     end
