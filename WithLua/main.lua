@@ -1,9 +1,11 @@
 local grid = {}
 local placedGrid = {}
-local gW, gH = 80, 60
+local gW, gH = 40, 8
+
+love.graphics.setDefaultFilter("nearest", "nearest")
 
 -- list all tiles
-local allTiles = {"air", "grass", "dirt"}
+local allTiles = {"Bush", "CenterTop", "DoubleBushp1", "DoubleBushp2", "LeftCorner", "LeftSide", "RightCorner", "RightSide", "Void"}
 
 -- creat tiles
 local tileManager = {}
@@ -11,7 +13,7 @@ for i, v in pairs(allTiles) do
     tileManager[v] = require("spaces."..v)
 end
 
-local tileSize = 10
+local tileSize = 20
 local showGrid = true
 local doDebug = false
 local autoSpace = false
@@ -27,9 +29,15 @@ for i, v in pairs(allTiles) do
 end
 
 local spaces = {
-    tileManager.air,
-    tileManager.dirt,
-    tileManager.grass,
+    tileManager.Bush,
+    tileManager.DoubleBushp1,
+    tileManager.DoubleBushp2,
+    tileManager.CenterTop,
+    tileManager.LeftCorner,
+    tileManager.LeftSide,
+    tileManager.RightCorner,
+    tileManager.RightSide,
+    tileManager.Void,
 }
 
 function love.load()
@@ -64,8 +72,8 @@ function love.draw()
             
             if placedGrid[x][y] and #tilePossiblity ~= 0 then
                 local tile = findVal(tilePossiblity)
-                love.graphics.setColor(tile.color)
-                love.graphics.rectangle("fill", (x-1)*tileSize, (y-1)*tileSize, tileSize, tileSize)
+                love.graphics.setColor(1, 1, 1)
+                love.graphics.draw(tile.image, (x-1)*tileSize, (y-1)*tileSize, 0, tileSize/8, tileSize/8)
             end
             if showGrid then
                 love.graphics.setColor(0, 0, 0)
@@ -125,19 +133,50 @@ function activateLowestRandom()
         end
     end
 
+    local val = 0
     local gridToChoseFrom = {}
     for x = 1,gW do
         for y = 1,gH do
             if #grid[x][y] == lowest and placedGrid[x][y] == false then
-                table.insert(gridToChoseFrom, {x, y})
+                local thisPri = getPriority(grid[x][y])
+                table.insert(gridToChoseFrom, {{x, y}, thisPri})
+                
+                val = math.max(thisPri, val)
             end
         end
     end
 
-    if #gridToChoseFrom ~= 0 then
-        local pos = gridToChoseFrom[love.math.random(1, #gridToChoseFrom)]
-        choseGrid(pos[1], pos[2], love.math.random(1, #grid[pos[1]][pos[2]]))
+    local gridToChoseFrom2 = {}
+    for _, obj in pairs(gridToChoseFrom) do
+        if obj[2] == val then
+            table.insert(gridToChoseFrom2, obj[1])
+        end
     end
+
+    if #gridToChoseFrom2 ~= 0 then
+        local pos = gridToChoseFrom2[love.math.random(1, #gridToChoseFrom2)]
+        local listOfNRs = {}
+        local myPriority = 0
+        for _, tile in pairs(grid[pos[1]][pos[2]]) do
+            if myPriority < tile.priority then
+                myPriority = tile.priority
+            end
+        end
+        for i, tile in pairs(grid[pos[1]][pos[2]]) do
+            if tile.priority == myPriority then
+                table.insert(listOfNRs, i)
+            end
+        end
+        choseGrid(pos[1], pos[2], listOfNRs[love.math.random(1, #listOfNRs)])
+    end
+end
+
+function getPriority(list)
+    local pri = 0
+    for _, v in pairs(list) do
+        pri = pri + v.priority
+    end
+    return pri
 end
 
 function choseGrid(x, y, nr)
@@ -188,7 +227,7 @@ function recalcPossibilities(x, y, itterations)
         local vals = {false, false, false, false}
         for i2 = 1,4 do
             vals[i2] = nilTrue(overlaps[i2]) -- if a side is nil, then any tile is accepted there
-
+            
             -- check if it contains tile
             if vals[i2] == false then
                 vals[i2] = contains(overlaps[i2], v)

@@ -8,8 +8,9 @@ function space:new()
         {}, -- down
         {}, -- left
     }
+    o.priority = 1
     o.name = "nil"
-    o.color = {}
+    o.image = nil
     setmetatable(o, self)
     self.__index = self
     return o
