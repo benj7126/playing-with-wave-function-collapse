@@ -8,6 +8,12 @@ function space:new()
         {}, -- down
         {}, -- left
     }
+    o.possibleDir = { -- things that can be placed, but i cant
+        {}, -- up
+        {}, -- right
+        {}, -- down
+        {}, -- left
+    }
     o.priority = 1
     o.name = "nil"
     o.image = nil

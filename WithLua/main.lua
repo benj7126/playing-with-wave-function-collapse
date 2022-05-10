@@ -1,11 +1,12 @@
 local grid = {}
 local placedGrid = {}
-local gW, gH = 40, 8
+local gW, gH = 80, 60
 
 love.graphics.setDefaultFilter("nearest", "nearest")
 
 -- list all tiles
-local allTiles = {"Bush", "CenterTop", "DoubleBushp1", "DoubleBushp2", "LeftCorner", "LeftSide", "RightCorner", "RightSide", "Void"}
+local allTiles = {"Bush", "CenterTop", "DoubleBushp1", "DoubleBushp2", "LeftCorner", "LeftSide", "RightCorner", "RightSide", "Void", "Filling"}
+--local allTiles = {"Grass", "Bricks", "Stone", "Door"}
 
 -- creat tiles
 local tileManager = {}
@@ -13,7 +14,7 @@ for i, v in pairs(allTiles) do
     tileManager[v] = require("spaces."..v)
 end
 
-local tileSize = 20
+local tileSize = 10
 local showGrid = true
 local doDebug = false
 local autoSpace = false
@@ -25,19 +26,27 @@ for i, v in pairs(allTiles) do
         for i3, tileToAdd in pairs(tile.dirs[i2]) do
             tile.dirs[i2][i3] = tileManager[tileToAdd]
         end
+        for i3, tileToAdd in pairs(tile.possibleDir[i2]) do
+            tile.possibleDir[i2][i3] = tileManager[tileToAdd]
+        end
     end
 end
 
 local spaces = {
+    -- tileManager.Grass,
+    -- tileManager.Bricks,
+    -- tileManager.Stone,
+    -- tileManager.Door,
     tileManager.Bush,
+    tileManager.CenterTop,
     tileManager.DoubleBushp1,
     tileManager.DoubleBushp2,
-    tileManager.CenterTop,
     tileManager.LeftCorner,
     tileManager.LeftSide,
     tileManager.RightCorner,
     tileManager.RightSide,
     tileManager.Void,
+    tileManager.Filling,
 }
 
 function love.load()
@@ -73,7 +82,7 @@ function love.draw()
             if placedGrid[x][y] and #tilePossiblity ~= 0 then
                 local tile = findVal(tilePossiblity)
                 love.graphics.setColor(1, 1, 1)
-                love.graphics.draw(tile.image, (x-1)*tileSize, (y-1)*tileSize, 0, tileSize/8, tileSize/8)
+                love.graphics.draw(tile.image, (x-1)*tileSize, (y-1)*tileSize, 0, tileSize/64, tileSize/64)
             end
             if showGrid then
                 love.graphics.setColor(0, 0, 0)
@@ -215,6 +224,9 @@ function recalcPossibilities(x, y, itterations)
             local newList = {}
             for _, actualList in pairs(overlaps[i]) do
                 for _, v in pairs(actualList.dirs[overlapDirs[i]]) do
+                    table.insert(newList, v)
+                end
+                for _, v in pairs(actualList.possibleDir[overlapDirs[i]]) do
                     table.insert(newList, v)
                 end
             end

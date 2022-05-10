@@ -6,9 +6,9 @@ tile.image = love.graphics.newImage("tile5.png")
 tile.name = "RightSide"
 tile.dirs = {
     {"RightSide", "RightCorner"},
-    {"Void"},
+    {"Void", "CenterTop"},
     {"RightSide", "CenterTop"},
-    {"Void", "LeftSide"},
+    {"Filling", "LeftSide"},
 }
 
 return tile
